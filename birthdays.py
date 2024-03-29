@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class Field:
@@ -15,13 +15,11 @@ class Name(Field):
 
 class Phone(Field):
     def __init__(self, value=None):
-        if value:
-            if len(value) != 10 or not value.isdigit():
-                raise ValueError("Номер телефону має містити 10 цифр.")
-            else:
-                super().__init__(value)
-        else:
-            super().__init__(value)
+        super().__init__(value)
+
+    def validate(self):
+        if self.value is not None and (len(self.value) != 10 or not self.value.isdigit()):
+            raise ValueError("Номер телефону має містити 10 цифр.")
 
 
 class Birthday(Field):
@@ -45,7 +43,16 @@ class Record:
         self.birthday = None
 
     def add_phone(self, phone):
-        self.phones.append(Phone(phone))
+        while True:
+            try:
+                phone.validate()
+                break
+            except ValueError as e:
+                print("Помилка:", str(e))
+                print("Будь ласка, введіть номер у правильному форматі.")
+                phone.value = input("Введіть номер телефону: ")
+
+        self.phones.append(phone)
 
     def remove_phone(self, phone):
         self.phones = [p for p in self.phones if str(p) != phone]
@@ -82,14 +89,32 @@ class AddressBook:
     def delete(self, name):
         if name not in self.data:
             raise KeyError("Контакт не знайдено.")
-        del self.data[name]
 
+    def get_upcoming_birthdays(self):
+        today = datetime.today().date()
+        upcoming_birthdays = []
 
-class User:
-    def __init__(self, name, dob=None, phone=None):
-        self.name = name
-        self.dob = dob
-        self.phone = phone
+        for record in self.data.values():
+            birthday = datetime.strptime(
+                record.birthday.value, "%d.%m.%Y").date().replace(year=today.year)
+
+            if birthday < today:
+                birthday = birthday.replace(year=today.year + 1)
+
+            days_until_birthday = (birthday - today).days
+            if 0 <= days_until_birthday <= 7:
+                if birthday.weekday() >= 5:  # Якщо день народження припадає на вихідний
+                    # Переносимо на наступний понеділок
+                    days_until_birthday += (7 - birthday.weekday())
+
+                congratulation_date = today + \
+                    timedelta(days=days_until_birthday)
+                upcoming_birthdays.append({
+                    "name": record.name.value,
+                    "congratulation_date": congratulation_date.strftime("%Y.%m.%d")
+                })
+
+        return upcoming_birthdays
 
 
 class Bot:
@@ -121,49 +146,52 @@ class Bot:
                 print("Помилка:", str(e))
                 print("Будь ласка, введіть номер у правильному форматі.")
 
-        self.users[name] = User(name, dob, phone)
+        record = Record(name)
+        record.birthday = dob
+        record.add_phone(phone)
+
+        self.address_book.add_record(record)
         print("Контакт додано успішно.")
 
     def get_user_info(self, name):
-        if name in self.users:
-            user = self.users[name]
-            return f"Ім'я: {user.name}, День народження: {user.dob}, Телефон: {user.phone}"
-        else:
+        try:
+            record = self.address_book.find(name)
+            return str(record)
+        except KeyError:
             return "Контакт не знайдено."
 
     def list_all_users(self):
-        if self.users:
-            return "\n".join([user.name for user in self.users.values()])
+        if self.address_book.data:
+            return "\n".join([record.name.value for record in self.address_book.data.values()])
         else:
             return "Немає доступних контактів."
 
     def add_birthday(self, name, dob):
-        if name in self.users:
-            self.users[name].dob = Birthday(dob)  # Оновлено тут
+        try:
+            record = self.address_book.find(name)
+            record.birthday = Birthday(dob)
             print(f"День народження додано/оновлено для {name}.")
-        else:
+        except ValueError as e:
+            print("Помилка:", str(e))
+            print("Будь ласка, введіть дату у правильному форматі.")
+        except KeyError:
             print("Контакт не знайдено.")
 
     def show_birthday(self, name):
-        if name in self.users:
-            return f"День народження {name} на {self.users[name].dob}."
-        else:
+        try:
+            record = self.address_book.find(name)
+            return f"День народження {name} на {record.birthday.value}."
+        except KeyError:
             return "Контакт не знайдено."
 
     def birthdays(self):
-        upcoming_birthdays = []
-        today = datetime.now()
-        for name, user in self.users.items():
-            dob = datetime.strptime(user.dob.value, "%d.%m.%Y")  # Змінено тут
-            if dob.month == today.month and dob.day >= today.day:
-                upcoming_birthdays.append((name, dob.strftime("%d.%m")))
+        upcoming_birthdays = self.address_book.get_upcoming_birthdays()
         if upcoming_birthdays:
-            return "\n".join([f"{name}: {dob}" for name, dob in upcoming_birthdays])
+            return "\n".join([f"{birthday['name']} - {birthday['congratulation_date']}" for birthday in upcoming_birthdays])
         else:
             return "Немає наближених днів народження."
 
     def run(self):
-        print("Ласкаво просимо до асистента!")
         while True:
             print("\nМеню:")
             print("1. Додати новий контакт")
@@ -173,14 +201,16 @@ class Bot:
             print("5. Показати день народження")
             print("6. Показати наближені дні народження")
             print("7. Вихід")
-            choice = input("Введіть ваш вибір: ").strip()
+
+            choice = input("Введіть ваш вибір: ")
 
             if choice == "1":
-                name = input("Введіть ім'я: ")
+                name = input("Введіть ім'я: ").capitalize()
                 self.add_user(name)
 
             elif choice == "2":
-                name = input("Введіть ім'я для отримання інформації: ")
+                name = input(
+                    "Введіть ім'я для отримання інформації: ").capitalize()
                 print(self.get_user_info(name))
 
             elif choice == "3":
@@ -188,12 +218,12 @@ class Bot:
                 print(self.list_all_users())
 
             elif choice == "4":
-                name = input("Введіть ім'я: ")
+                name = input("Введіть ім'я: ").capitalize()
                 dob = input("Введіть дату народження (DD.MM.YYYY): ")
                 self.add_birthday(name, dob)
 
             elif choice == "5":
-                name = input("Введіть ім'я: ")
+                name = input("Введіть ім'я: ").capitalize()
                 print(self.show_birthday(name))
 
             elif choice == "6":
