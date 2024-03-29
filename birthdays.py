@@ -16,7 +16,7 @@ class Name(Field):
 class Phone(Field):
     def __init__(self, value):
         if len(value) != 10 or not value.isdigit():
-            raise ValueError("Phone number must be 10 digits.")
+            raise ValueError("Номер телефону має містити 10 цифр.")
         super().__init__(value)
 
 
@@ -25,7 +25,8 @@ class Birthday(Field):
         try:
             datetime.strptime(value, "%d.%m.%Y")
         except ValueError:
-            raise ValueError("Invalid date format. Use DD.MM.YYYY")
+            raise ValueError(
+                "Неправильний формат дати. Використовуйте DD.MM.YYYY.")
         super().__init__(value)
 
 
@@ -43,7 +44,7 @@ class Record:
 
     def edit_phone(self, old_phone, new_phone):
         if old_phone not in [str(p) for p in self.phones]:
-            raise ValueError("Phone number not found.")
+            raise ValueError("Номер телефону не знайдено.")
         self.remove_phone(old_phone)
         self.add_phone(new_phone)
 
@@ -51,11 +52,11 @@ class Record:
         for p in self.phones:
             if str(p) == phone:
                 return p.value
-        raise ValueError("Phone number not found.")
+        raise ValueError("Номер телефону не знайдено.")
 
     def __str__(self):
         phones_str = '; '.join(str(p) for p in self.phones)
-        return f"Contact name: {self.name}, phones: {phones_str}, birthday: {self.birthday}"
+        return f"Ім'я: {self.name}, Телефони: {phones_str}, День народження: {self.birthday}"
 
 
 class AddressBook:
@@ -67,12 +68,12 @@ class AddressBook:
 
     def find(self, name):
         if name not in self.data:
-            raise KeyError("Contact not found.")
+            raise KeyError("Контакт не знайдено.")
         return self.data[name]
 
     def delete(self, name):
         if name not in self.data:
-            raise KeyError("Contact not found.")
+            raise KeyError("Контакт не знайдено.")
         del self.data[name]
 
 
@@ -94,28 +95,28 @@ class Bot:
     def get_user_info(self, name):
         if name in self.users:
             user = self.users[name]
-            return f"Name: {user.name}, DOB: {user.dob}, Phone: {user.phone}"
+            return f"Ім'я: {user.name}, Дата народження: {user.dob}, Телефон: {user.phone}"
         else:
-            return "User not found."
+            return "Контакт не знайдено."
 
     def list_all_users(self):
         if self.users:
-            return "\n".join([user.name for user in self.users.values()])
+            return "\n".join([f"Ім'я: {user.name}, Дата народження: {user.dob}, Телефон: {user.phone}" for user in self.users.values()])
         else:
-            return "No users available."
+            return "Немає доступних контактів."
 
     def add_birthday(self, name, dob):
         if name in self.users:
             self.users[name].dob = dob
-            print(f"Birthday added/updated for {name}.")
+            print(f"День народження додано/оновлено для {name}.")
         else:
-            print("User not found.")
+            print("Контакт не знайдено.")
 
     def show_birthday(self, name):
         if name in self.users:
-            return f"{name}'s birthday is on {self.users[name].dob}."
+            return f"День народження {name} в {self.users[name].dob}."
         else:
-            return "User not found."
+            return "Контакт не знайдено."
 
     def birthdays(self):
         upcoming_birthdays = []
@@ -127,55 +128,61 @@ class Bot:
         if upcoming_birthdays:
             return "\n".join([f"{name}: {dob}" for name, dob in upcoming_birthdays])
         else:
-            return "No upcoming birthdays."
+            return "Немає наближених днів народження."
 
     def run(self):
-        print("Welcome to the assistant bot!")
+        print("Ласкаво просимо до асистента!")
         while True:
-            print("\nMenu:")
-            print("1. Add a new contact")
-            print("2. Show contact info")
-            print("3. List all contacts")
-            print("4. Add birthday")
-            print("5. Show birthday")
-            print("6. Show upcoming birthdays")
-            print("7. Exit")
-            choice = input("Enter your choice: ").strip()
+            print("\nМеню:")
+            print("1. Додати новий контакт")
+            print("2. Показати інформацію про контакт")
+            print("3. Показати всі контакти")
+            print("4. Додати день народження")
+            print("5. Показати день народження")
+            print("6. Показати наближені дні народження")
+            print("7. Вихід")
+            choice = input("Введіть ваш вибір: ").strip()
 
             if choice == "1":
-                name = input("Enter name: ")
-                dob = input("Enter date of birth (DD.MM.YYYY): ")
-                phone = input("Enter phone number: ")
-                self.add_user(name, dob, phone)
-                print("User added successfully.")
+                name = input("Введіть ім'я: ")
+                dob = input("Введіть дату народження (DD.MM.YYYY): ")
+                phone = input("Введіть номер телефону: ")
+                try:
+                    self.add_user(name, dob, phone)
+                    print("Контакт успішно додано.")
+                except ValueError as e:
+                    print(f"Помилка: {e}")
 
             elif choice == "2":
-                name = input("Enter name to get info: ")
+                name = input("Введіть ім'я для отримання інформації: ")
                 print(self.get_user_info(name))
 
             elif choice == "3":
-                print("List of users:")
+                print("Список контактів:")
                 print(self.list_all_users())
 
             elif choice == "4":
-                name = input("Enter name: ")
-                dob = input("Enter date of birth (DD.MM.YYYY): ")
-                self.add_birthday(name, dob)
+                name = input("Введіть ім'я: ")
+                dob = input("Введіть дату народження (DD.MM.YYYY): ")
+                try:
+                    self.add_birthday(name, dob)
+                except ValueError as e:
+                    print(f"Помилка: {e}")
 
             elif choice == "5":
-                name = input("Enter name: ")
+                name = input("Введіть ім'я: ")
                 print(self.show_birthday(name))
 
             elif choice == "6":
-                print("Upcoming birthdays:")
+                print("Наближені дні народження:")
                 print(self.birthdays())
 
-            elif choice == "7":
-                print("Exiting...")
+            elif choice in ["exit", "close"]:
+                print("Виходимо...")
                 break
 
             else:
-                print("Invalid choice. Please try again.")
+                print("Неправильний вибір. Будь ласка, спробуйте знову.")
 
 
 if __name__ == "__main__":
