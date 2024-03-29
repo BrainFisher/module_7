@@ -25,7 +25,8 @@ class Birthday(Field):
         try:
             datetime.strptime(value, "%d.%m.%Y")
         except ValueError:
-            raise ValueError("Неправильний формат дати. Використовуйте DD.MM.YYYY.")
+            raise ValueError(
+                "Неправильний формат дати. Використовуйте DD.MM.YYYY.")
         super().__init__(value)
 
 
@@ -89,7 +90,14 @@ class Bot:
         self.address_book = AddressBook()
 
     def add_user(self, name, dob, phone):
-        self.users[name] = User(name, dob, phone)
+        try:
+            dob = Birthday(dob)
+            phone = Phone(phone)
+            self.users[name] = User(name, dob, phone)
+            print("Контакт успішно додано.")
+        except ValueError as e:
+            print(f"Помилка: {
+                  e}. Будь ласка, введіть дані у правильному форматі.")
 
     def get_user_info(self, name):
         if name in self.users:
@@ -106,8 +114,13 @@ class Bot:
 
     def add_birthday(self, name, dob):
         if name in self.users:
-            self.users[name].dob = dob
-            print(f"День народження додано/оновлено для {name}.")
+            try:
+                dob = Birthday(dob)
+                self.users[name].dob = dob
+                print(f"День народження додано/оновлено для {name}.")
+            except ValueError as e:
+                print(f"Помилка: {
+                      e}. Будь ласка, введіть дату у форматі DD.MM.YYYY.")
         else:
             print("Контакт не знайдено.")
 
@@ -146,11 +159,7 @@ class Bot:
                 name = input("Введіть ім'я: ")
                 dob = input("Введіть дату народження (DD.MM.YYYY): ")
                 phone = input("Введіть номер телефону: ")
-                try:
-                    self.add_user(name, dob, phone)
-                    print("Контакт успішно додано.")
-                except ValueError as e:
-                    print(f"Помилка: {e}")
+                self.add_user(name, dob, phone)
 
             elif choice == "2":
                 name = input("Введіть ім'я для отримання інформації: ")
@@ -163,10 +172,7 @@ class Bot:
             elif choice == "4":
                 name = input("Введіть ім'я: ")
                 dob = input("Введіть дату народження (DD.MM.YYYY): ")
-                try:
-                    self.add_birthday(name, dob)
-                except ValueError as e:
-                    print(f"Помилка: {e}")
+                self.add_birthday(name, dob)
 
             elif choice == "5":
                 name = input("Введіть ім'я: ")
@@ -178,7 +184,7 @@ class Bot:
 
             elif choice == "7":
                 print("Виходимо...")
-                return  # Завершуємо виконання функції, що призведе до виходу з циклу while та програми
+                break
 
             else:
                 print("Неправильний вибір. Будь ласка, спробуйте знову.")
