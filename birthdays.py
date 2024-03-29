@@ -139,7 +139,7 @@ class Bot:
 
     def add_birthday(self, name, dob):
         if name in self.users:
-            self.users[name].dob = dob
+            self.users[name].dob = Birthday(dob)  # Оновлено тут
             print(f"День народження додано/оновлено для {name}.")
         else:
             print("Контакт не знайдено.")
@@ -154,7 +154,7 @@ class Bot:
         upcoming_birthdays = []
         today = datetime.now()
         for name, user in self.users.items():
-            dob = datetime.strptime(user.dob, "%d.%m.%Y")
+            dob = datetime.strptime(user.dob.value, "%d.%m.%Y")  # Змінено тут
             if dob.month == today.month and dob.day >= today.day:
                 upcoming_birthdays.append((name, dob.strftime("%d.%m")))
         if upcoming_birthdays:
