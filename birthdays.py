@@ -25,8 +25,7 @@ class Birthday(Field):
         try:
             datetime.strptime(value, "%d.%m.%Y")
         except ValueError:
-            raise ValueError(
-                "Неправильний формат дати. Використовуйте DD.MM.YYYY.")
+            raise ValueError("Неправильний формат дати. Використовуйте DD.MM.YYYY.")
         super().__init__(value)
 
 
@@ -177,9 +176,9 @@ class Bot:
                 print("Наближені дні народження:")
                 print(self.birthdays())
 
-            elif choice in ["exit", "close"]:
+            elif choice == "7":
                 print("Виходимо...")
-                break
+                return  # Завершуємо виконання функції, що призведе до виходу з циклу while та програми
 
             else:
                 print("Неправильний вибір. Будь ласка, спробуйте знову.")
