@@ -14,20 +14,28 @@ class Name(Field):
 
 
 class Phone(Field):
-    def __init__(self, value):
-        if len(value) != 10 or not value.isdigit():
-            raise ValueError("Номер телефону має містити 10 цифр.")
-        super().__init__(value)
+    def __init__(self, value=None):
+        if value:
+            if len(value) != 10 or not value.isdigit():
+                raise ValueError("Номер телефону має містити 10 цифр.")
+            else:
+                super().__init__(value)
+        else:
+            super().__init__(value)
 
 
 class Birthday(Field):
-    def __init__(self, value):
-        try:
-            datetime.strptime(value, "%d.%m.%Y")
-        except ValueError:
-            raise ValueError(
-                "Неправильний формат дати. Використовуйте DD.MM.YYYY.")
-        super().__init__(value)
+    def __init__(self, value=None):
+        if value:
+            try:
+                datetime.strptime(value, "%d.%m.%Y")
+            except ValueError:
+                raise ValueError(
+                    "Неправильний формат дати. Використовуйте DD.MM.YYYY.")
+            else:
+                super().__init__(value)
+        else:
+            super().__init__(value)
 
 
 class Record:
@@ -78,7 +86,7 @@ class AddressBook:
 
 
 class User:
-    def __init__(self, name, dob, phone):
+    def __init__(self, name, dob=None, phone=None):
         self.name = name
         self.dob = dob
         self.phone = phone
@@ -88,45 +96,57 @@ class Bot:
     def __init__(self):
         self.users = {}
         self.address_book = AddressBook()
+        self.last_added_dob = None
+        self.last_added_phone = None
 
-    def add_user(self, name, dob, phone):
-        try:
-            dob = Birthday(dob)
-            phone = Phone(phone)
-            self.users[name] = User(name, dob, phone)
-            print("Контакт успішно додано.")
-        except ValueError as e:
-            print(f"Помилка: {
-                  e}. Будь ласка, введіть дані у правильному форматі.")
+    def add_user(self, name):
+        dob = None
+        phone = None
+
+        while True:
+            dob_input = input("Введіть дату народження (DD.MM.YYYY): ")
+            try:
+                dob = Birthday(dob_input)
+                break
+            except ValueError as e:
+                print("Помилка:", str(e))
+                print("Будь ласка, введіть дату у правильному форматі.")
+
+        while True:
+            phone_input = input("Введіть номер телефону: ")
+            try:
+                phone = Phone(phone_input)
+                break
+            except ValueError as e:
+                print("Помилка:", str(e))
+                print("Будь ласка, введіть номер у правильному форматі.")
+
+        self.users[name] = User(name, dob, phone)
+        print("Контакт додано успішно.")
 
     def get_user_info(self, name):
         if name in self.users:
             user = self.users[name]
-            return f"Ім'я: {user.name}, Дата народження: {user.dob}, Телефон: {user.phone}"
+            return f"Ім'я: {user.name}, День народження: {user.dob}, Телефон: {user.phone}"
         else:
             return "Контакт не знайдено."
 
     def list_all_users(self):
         if self.users:
-            return "\n".join([f"Ім'я: {user.name}, Дата народження: {user.dob}, Телефон: {user.phone}" for user in self.users.values()])
+            return "\n".join([user.name for user in self.users.values()])
         else:
             return "Немає доступних контактів."
 
     def add_birthday(self, name, dob):
         if name in self.users:
-            try:
-                dob = Birthday(dob)
-                self.users[name].dob = dob
-                print(f"День народження додано/оновлено для {name}.")
-            except ValueError as e:
-                print(f"Помилка: {
-                      e}. Будь ласка, введіть дату у форматі DD.MM.YYYY.")
+            self.users[name].dob = dob
+            print(f"День народження додано/оновлено для {name}.")
         else:
             print("Контакт не знайдено.")
 
     def show_birthday(self, name):
         if name in self.users:
-            return f"День народження {name} в {self.users[name].dob}."
+            return f"День народження {name} на {self.users[name].dob}."
         else:
             return "Контакт не знайдено."
 
@@ -157,9 +177,7 @@ class Bot:
 
             if choice == "1":
                 name = input("Введіть ім'я: ")
-                dob = input("Введіть дату народження (DD.MM.YYYY): ")
-                phone = input("Введіть номер телефону: ")
-                self.add_user(name, dob, phone)
+                self.add_user(name)
 
             elif choice == "2":
                 name = input("Введіть ім'я для отримання інформації: ")
